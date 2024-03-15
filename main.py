@@ -1,26 +1,61 @@
-import requests
-from pprint import pprint
 import base64
-import sys
+from cachetools import TTLCache
 import html
 import json
+from pprint import pprint
+import requests
+import sys
 
-gdh_domain="https://api2-us-west-2.insided.com"
-client_id = "09df829c-8010-4ae7-a27c-56a52c86d871"
-client_secret = "4db1a1319c60a8b6ca1f3f6fd040f4e6369acde1f3c8e9ba289b1fd14beb1bf1"
+import config
 
+gdh_domain = config.config['gdh_domain']
+gdh_client_id = config.config['gdh_client_id']
+gdh_client_secret = config.config['gdh_client_secret']
+zd_domain = config.config['zd_domain']
+zd_forum_id = config.config['zd_forum_id']
 
-
-DEV_FORUM_ID = "360001932973"
-zd_url = f"https://support.box.com/api/v2/community/topics/{DEV_FORUM_ID}/posts"
+zd_url = f"{zd_domain}/api/v2/community/topics/{zd_forum_id}/posts"
 zd_headers = {
     "Content-Type": "application/json",
 }
 
-auth_code = ""
+cache = None
 
 more = True
 
+def set_token():
+    endpoint = 'https://' + self.target_url + '/token'
+
+    if cache != None:
+        try:
+            token = cache['token']
+
+            return
+        
+        except KeyError:
+
+            pass
+
+    token, expires_in = gdh_auth()
+        
+    cache = TTLCache(maxsize=1, ttl=expires_in)
+
+    cache['token'] = token
+
+
+def get_token():
+    #if token time is less than a one second then
+    # print that we are pausing to clear
+    # re-auth and return the new token
+    try:
+        token = cache['token']
+
+        return token
+    except KeyError:
+        set_token()
+
+        return cache['token']
+        
 def gdh_auth():
    
     headers = {
@@ -29,8 +64,8 @@ def gdh_auth():
    
     body = {
         "grant_type": "client_credentials",
-        "client_id": client_id,
-        "client_secret": client_secret,
+        "client_id": gdh_client_id,
+        "client_secret": gdh_client_secret,
         "scope": "write read"
     }
 
@@ -38,14 +73,14 @@ def gdh_auth():
 
     auth_json = response.json()
 
-    return auth_json['access_token']
+    return auth_json['access_token'], auth_json['expires_in']
 
 def create_post(post):
     url = f"{gdh_domain}/v2/conversations/start?authorId=646&moderatorId=646"
 
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {auth_code}"
+        "Authorization": f"Bearer {get_token()}"
     }
 
     payload = {
@@ -74,7 +109,7 @@ def reply_to_conversation(comment, conversation_id):
 
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {auth_code}"
+        "Authorization": f"Bearer {get_token()}"
     }
 
     payload = {
