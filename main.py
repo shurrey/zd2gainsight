@@ -10,6 +10,7 @@ import auth
 import config
 
 gdh_domain = config.config['gdh_domain']
+gdh_category_id = config.config['gdh_category_id']
 zd_domain = config.config['zd_domain']
 zd_forum_id = config.config['zd_forum_id']
 
@@ -36,7 +37,7 @@ def create_post(post):
     payload = {
         "title": post['title'],
         "content": post['details'],
-        "categoryId": 24,   
+        "categoryId": gdh_category_id,   
         "tags": [
             "developer",
             "archive"
